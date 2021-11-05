@@ -8,31 +8,17 @@ class Database:
         self.DATABASEURI = 'postgresql://ame2194:5366@34.74.246.148/proj1part2'
         self.engine = create_engine(self.DATABASEURI)
 
-    def get_students(self):
+    def get_table(self, select: str, table: str) -> list[dict]:
         '''
-        This is an example query that gets all students.
+        Queries the database for a specific table and returns the results as a list of dictionaries.
         '''
-
-        # Connect to the database
+        args = (select, table)
+        query = "SELECT %s FROM %s" % args
         conn = self.connect()
-
-        # Run the query
-        cursor = conn.execute("SELECT * From Student")
-
-        # List to be returned
-        students = []
-
-        # retchall rows
-        rows = cursor.fetchall()
-
-        # Append each row to the list
-        for row in rows:
-            students.append(list(row))
-
-        # Close database
+        cursor = conn.execute(query)
+        result = [row._asdict() for row in cursor]
         self.close(conn)
-
-        return students
+        return result
 
     def connect(self):
         '''
