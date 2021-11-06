@@ -18,3 +18,9 @@ class ClassScheduler:
         Returns all courses.
         '''
         return self.db.get_table('*', 'Course')
+
+    def clear_schedule(self):
+        '''
+        This method should clear the schedule of all students.
+        '''
+        self.db.clear_schedule()

@@ -20,6 +20,9 @@ class Database:
         self.close(conn)
         return result
 
+    def clear_schedule(self):
+        return
+
     def connect(self):
         '''
         Used to create a connection to the database.
