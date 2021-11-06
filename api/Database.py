@@ -56,6 +56,18 @@ class Database:
         self.close(conn)
         return result
 
+    def get_completed_courses(self, student_id: str) -> list[str]:
+        '''
+        Returns a list of all courses from every academic semester that the student has completed(has letter grade)
+        '''
+        return []
+
+    def get_prerequisites(self, course_id: str) -> list[str]:
+        '''
+        Returns a list of course_ids that are prerequisites for the given course.
+        '''
+        return []
+
     def clear_schedule(self):
         return
 

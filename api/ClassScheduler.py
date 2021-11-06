@@ -16,11 +16,21 @@ class ClassScheduler:
             self.schedule_student(id)
         return student_ids
 
-    def schedule_student(self, id: str) -> None:
+    def schedule_student(self, student_id: str) -> None:
         '''
         Schedules a student in 5 classes.
         '''
-        course_ids = self.db.get_course_ids_with_capacity()
+        avalible_course_ids = self.db.get_course_ids_with_capacity()
+        completed_course_ids = self.db.get_completed_courses(student_id)
+
+        # Remove completed courses from avalible courses
+        course_ids = self.remove_completed_courses(
+            avalible_course_ids, completed_course_ids)
+
+        # Remove coures where the student does not have the prereques
+
+    def remove_completed_courses(self, avalible_course_ids: str, completed_course_ids) -> list[str]:
+        return list(set(avalible_course_ids) - set(completed_course_ids))
 
     def get_students(self) -> list[dict]:
         '''
