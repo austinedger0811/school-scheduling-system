@@ -14,11 +14,6 @@ def hello():
     return 'Hello Word.'
 
 
-@app.route('/api/v1/students', methods=['GET'])
-def students():
-    return jsonify(scheduler.get_students())
-
-
-@app.route('/api/v1/courses', methods=['GET'])
-def courses():
-    return jsonify(scheduler.get_courses())
+@app.route('/api/v1/test', methods=['GET'])
+def test():
+    return jsonify(scheduler.schedule_students())
