@@ -36,6 +36,74 @@ class Database:
         result = [row._asdict()['student_id'] for row in cursor]
         self.close(conn)
         return result
+    
+    def get_student_requirements_status(student_id: str) -> list[str]:
+        '''
+        Returns all studnet ids for students that are not in 5 classes.
+        '''
+        query = """
+            SELECT  C.requirement_type, count(*)
+            FROM Student S, Takes T, Course C
+            WHERE S.student_id = T. sid and T.cid = C.course_id and S.student_id = %s
+            group by C.requirement_type
+        """ % student_id
+        conn = self.connect()
+        cursor = conn.execute(query)
+        result = [row._asdict()['student_id'] for row in cursor]
+        self.close(conn)
+        return result
+
+    def get_student_schdule(student_id: str, semester: str,year: int) -> list[str]:
+        '''
+        Returns all studnet ids for students that are not in 5 classes.
+        '''
+        args = (semester, year, student_id)
+        query = """
+        SELECT  DISTINCT S.student_id, S.first_name, S.last_name, C.name, C.course_id, A.classroom, A.day_of_week, A.start_time, A.end_time
+        FROM Student S, Takes T, Course C, Assigned_to A
+        WHERE S.student_id = T. sid and T.cid = C.course_id and A.cid = C.course_id and T.semester = %s and T.year = %s and S.student_id = %s
+        ORDER BY A.day_of_week, A.start_time;
+        """ % args
+        conn = self.connect()
+        cursor = conn.execute(query)
+        result = [row._asdict() for row in cursor]
+        self.close(conn)
+        return result
+
+    def get_student_emergency_contact(student_id: str) -> list[str]:
+        '''
+        Returns all studnet ids for students that are not in 5 classes.
+        '''
+        query = """
+        SELECT  S.student_id, S.first_name As student_first_name , S.last_name As student_last_name, H.relation, E.first_name As contact_first_name, E.last_name As contact_last_name, E.phone_number
+        FROM Student S, has H, Emergency_Contact E
+        WHERE S.student_id = %s and E.ssn = H.ecid;
+        """ % student_id
+        conn = self.connect()
+        cursor = conn.execute(query)
+        result = [row._asdict() for row in cursor]
+        self.close(conn)
+        return result
+
+
+    def get_student_ids_not_enrolled_in_semester(self semester: str, year: int) -> list[str]:
+        '''
+        Returns all studnet ids for students that are not enrolled in a specific semester.
+        '''
+        args = (semester, year)
+
+        query = """
+            SELECT S.student_id
+            FROM Student S
+            WHERE S.student_id not in (SELECT S1.student_id
+                        FROM Student S1, Takes T
+                        WHERE S1.student_id = T.sid and semester = %s and year = %s)
+        """ % args
+        conn = self.connect()
+        cursor = conn.execute(query)
+        result = [row._asdict()['student_id'] for row in cursor]
+        self.close(conn)
+        return result
 
     def get_course_ids_with_capacity(self) -> list[str]:
         '''
@@ -44,11 +112,12 @@ class Database:
         '''
         # TODO FIX THIS QUERY
         query = """
-            SELECT
-            FROM 
-            WHERE 
-            GROUP 
-            HAVING 
+            SELECT T.cid
+            FROM takes T
+            Group by  T.cid
+            Having count(*) < (SELECT Distinct R.capacity
+            FROM  Classroom R, assigned_to A
+            Where T.cid = A.cid and  R.cla
         """
         conn = self.connect()
         cursor = conn.execute(query)
@@ -60,13 +129,124 @@ class Database:
         '''
         Returns a list of all courses from every academic semester that the student has completed(has letter grade)
         '''
-        return []
+        query = """
+        Select T.cid, T.grade
+        From Takes T
+        Where  T.sid= %s  and T.grade is not NULL;
+        """ % student_id
+
+        conn = self.connect()
+        cursor = conn.execute(query)
+        result = [row._asdict() for row in cursor]
+        self.close(conn)
+        return result
 
     def get_prerequisites(self, course_id: str) -> list[str]:
         '''
         Returns a list of course_ids that are prerequisites for the given course.
         '''
-        return []
+        
+        query = """
+        SELECT P.prerequisite
+        FROM prerequire P
+        WHERE P.cid = %s """ % course_id
+
+        conn = self.connect()
+        cursor = conn.execute(query)
+        result = [row._asdict()['prerequisite'] for row in cursor]
+        self.close(conn)
+        return result
+    
+    def get_course_timeslot(self, course_id: str, semester: str,year: int) -> list[str]:
+        '''
+        Returns a the start_time of a given course at a specifed semester
+        '''
+        args = (semester, year, course_id)
+
+        query = """
+        SELECT Distinct A.start_time
+        FROM   Course C, Assigned_to A
+        WHERE A.cid = C.course_id and A.semester = %s and A.year = %s and C.course_id = %s
+        """ % args
+
+        conn = self.connect()
+        cursor = conn.execute(query)
+        result = [row._asdict() for row in cursor]
+        self.close(conn)
+        return result
+
+    def check_time_conflict(self, student_id: str ,course_id: str, semester: str,year: int) -> list[str]:
+        '''
+        Returns an empty list if there is no conflict, otherwise, it returns a table of course names that have a time conflict with.
+        '''
+
+        args = (semester, year, student_id, semester, year, course_id)
+        query = """
+        SELECT  C.name
+        FROM Student S, Takes T, Course C, Assigned_to A
+        WHERE S.student_id = T. sid and T.cid = C.course_id
+        and A.cid = C.course_id and T.semester = %s
+        and T.year = %s and S.student_id = %s and A.start_time in (
+        SELECT Distinct A1.start_time
+        FROM   Course C1, Assigned_to A1
+        WHERE A1.cid = C1.course_id and A1.semester = %s and A1.year = %s and C1.course_id = %s)
+
+        """ % args
+
+        conn = self.connect()
+        cursor = conn.execute(query)
+        result = [row._asdict() for row in cursor]
+        self.close(conn)
+        return result
+
+    def get_list_possible_courses_to_enroll(self, student_id: str ) -> list[str]:
+        '''
+        Returns an list of all possible courses that the student can take keeping in mind classroom capacity and prerequisites.
+        '''
+
+        args = (student_id, student_id, student_id, student_id)
+        query = """
+        SELECT C.course_id, C.requirement_type
+        FROM Course C
+        WHERE C.course_id not in ( Select T.cid
+                                   From Takes T
+                                   Where  T.sid = %s )
+        UNION
+        SELECT C.course_id, C.requirement_type
+        FROM Course C
+        WHERE C.course_id in ( Select T.cid
+                                   From Takes T
+                                   Where  T.sid = %s and T.grade = 'F')
+        EXCEPT
+        SELECT P.cid, C.requirement_type
+        FROM prerequire P, Course C
+        WHERE P.cid = C.course_id and  P.prerequisite not in (Select T.cid
+                                 From Takes T
+                                 Where  T.sid = %s)
+        EXCEPT
+        SELECT Distinct P.cid, C.requirement_type
+        FROM prerequire P, Course C
+        WHERE P.cid = C.course_id and P.prerequisite in (Select T.cid
+                                 From Takes T
+                                 Where  T.sid = %s and T.grade ='F')
+
+        INTERSECT
+        SELECT Distinct  C.course_id, C.requirement_type
+        FROM Course C
+        Where C.course_id in
+        (SELECT Distinct T.cid
+        FROM takes T
+        Group by  T.cid
+        Having count(*) < (SELECT Distinct R.capacity
+        FROM  Classroom R, assigned_to A
+        Where T.cid = A.cid and  R.classroom_id = A.classroom ))""" % args
+
+        conn = self.connect()
+        cursor = conn.execute(query)
+        result = [row._asdict() for row in cursor]
+        self.close(conn)
+        return result
+
 
     def clear_schedule(self):
         return
