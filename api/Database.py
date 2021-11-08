@@ -86,7 +86,7 @@ class Database:
         return result
 
 
-    def get_student_ids_not_enrolled_in_semester(self semester: str, year: int) -> list[str]:
+    def get_student_ids_not_enrolled_in_semester(self, semester: str, year: int) -> list[str]:
         '''
         Returns all studnet ids for students that are not enrolled in a specific semester.
         '''
