@@ -68,6 +68,19 @@ class Database:
         '''
         return []
 
+    def get_schedule(self, sid: str) -> list[dict]:
+        args = (sid)
+        query = """
+            SELECT *
+            FROM Takes T
+            WHERE T.sid = %s
+        """ % args
+        conn = self.connect()
+        cursor = conn.execute(query)
+        result = [row._asdict() for row in cursor]
+        self.close(conn)
+        return result
+
     def clear_schedule(self):
         return
 

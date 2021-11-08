@@ -32,6 +32,9 @@ class ClassScheduler:
     def remove_completed_courses(self, avalible_course_ids: str, completed_course_ids) -> list[str]:
         return list(set(avalible_course_ids) - set(completed_course_ids))
 
+    def get_schedule(self, sid) -> list[dict]:
+        return self.db.get_schedule(sid)
+
     def get_students(self) -> list[dict]:
         '''
         Returns all students.

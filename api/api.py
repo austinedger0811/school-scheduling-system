@@ -19,6 +19,11 @@ def get_students():
     return jsonify(scheduler.get_students())
 
 
+@app.route('/api/v1/schedule/<sid>', methods=['GET'])
+def get_schedule(sid):
+    return jsonify(scheduler.get_schedule(sid))
+
+
 @app.route('/api/v1/test', methods=['GET'])
 def test():
     return jsonify(scheduler.schedule_students())

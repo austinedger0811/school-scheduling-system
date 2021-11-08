@@ -1,11 +1,24 @@
 import React from 'react'
 
+import AppBar from '@mui/material/AppBar';
+import Box from '@mui/material/Box';
+import Toolbar from '@mui/material/Toolbar';
+import Typography from '@mui/material/Typography';
+
 const Navbar = () => {
-    return (
-        <div>
-           <h1>Navbar</h1> 
-        </div>
-    )
+
+  return (
+
+    <Box sx={{ flexGrow: 1 }} mb={6}>
+      <AppBar position="static">
+        <Toolbar>
+          <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
+              School Scheduler
+          </Typography>
+        </Toolbar>
+      </AppBar>
+    </Box>
+  )
 }
 
 export default Navbar
