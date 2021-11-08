@@ -3,12 +3,16 @@ import React from 'react'
 import Container from '@mui/material/Container'
 import Typography from '@mui/material/Typography'
 
+import Navbar from '../Navbar/Navbar'
+import Dashboard from '../Dashboard/Dashboard'
+
 const App = () => {
 
   return (
     <React.Fragment>
-      <Container maxWidth="md">
-        <Typography variant="h2">Hello World.</Typography>
+      <Navbar />
+      <Container maxWidth="xl">
+        <Dashboard />
       </Container>
     </React.Fragment>
   );
