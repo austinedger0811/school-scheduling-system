@@ -20,24 +20,92 @@ class Database:
         self.close(conn)
         return result
 
-    def get_student_ids_without_full_schedule(self) -> list[str]:
+    def enroll_into_class(self, student_id: str, course_id: str, semester: str, year: int) -> list[dict]: # need to be tested
+        '''
+        enroll a student into a course by inserting into takes table in the database.
+        '''
+        query = "SELECT %s FROM %s" % args
+        conn = self.connect()
+        cursor = conn.execute(query)
+        self.close(conn)
+
+    def update_student_course_grade(self, student_id: str, course_id: str, semester: str, year: int, grade: str) -> list[dict]: # need to be tested
+        '''
+        updates a student grade in a giving course.
+        '''
+        args = grade, student_id, course_id, semester, year
+        query = " UPDATE Takes  SET grade = %s WHERE sid = %s and cid = %s and semester = %s and year = %s;" % args
+        conn = self.connect()
+        cursor = conn.execute(query)
+        #result = [row._asdict() for row in cursor]
+        self.close(conn)
+        #return result
+
+    def update_num_credits(self, student_id:str): # need to be tested
+        '''
+        retrive the number of credits the studnet completed successfully.
+        '''
+
+        query = """SELECT count(*)
+           FROM Takes T, Student S
+           WHERE S.student_id = T.sid and S.student_id = %s and T.grade not in (SELECT Distinct T1.grade
+            																	FROM Takes T1
+																	            WHERE T1.grade='F')
+        """ % student_id
+
+        conn = self.connect()
+        cursor = conn.execute(query)
+        credits = [row._asdict()['count'] for row in cursor][0]
+
+        updatequery = " UPDATE Student SET num_completed_credits = %s WHERE sid = %s;" % (credits, student_id)
+        cursor = conn.execute(updatequery)
+
+        self.close(conn)
+
+
+
+    def update_student_grade(self, student_id:str): # need to be tested
+        '''
+        Update the student grade by increasing it by one
+        '''
+        query1 = """SELECT S.grade
+           FROM  Student S
+           WHERE S.student_id = %s """ % student_id
+        conn = self.connect()
+        cursor = conn.execute(query)
+        grade = [row._asdict()['grade'] for row in cursor][0]
+
+        updatequery = " UPDATE Student SET grade = %s WHERE sid = %s;" % (grade+1, student_id)
+        cursor = conn.execute(updatequery)
+
+        self.close(conn)
+
+    def get_student_ids_without_full_schedule(self, semester: str,year: int) -> list[str]:
         '''
         Returns all studnet ids for students that are not in 5 classes.
+        and studnets newly enrolled and have not been enrolled into classes
         '''
+        args = (semester, year)
         query = """
             SELECT S.student_id
             FROM Student S, Takes T
-            WHERE S.student_id = T.sid
+            WHERE S.student_id = T.sid and T.semester = %s and T.year = %s
             GROUP BY S.student_id
             HAVING COUNT(S.student_id) < 5
-        """
+            UNION
+            SELECT S.student_id
+            FROM Student S
+            WHERE S.student_id not in (SELECT S.student_id
+                                       FROM Student S, Takes T
+                                       WHERE S.student_id = T.sid)
+        """ % args
         conn = self.connect()
         cursor = conn.execute(query)
         result = [row._asdict()['student_id'] for row in cursor]
         self.close(conn)
         return result
-    
-    def get_student_requirements_status(student_id: str) -> list[str]:
+
+    def get_student_requirements_status(self, student_id: str) -> list[str]:
         '''
         Returns all studnet ids for students that are not in 5 classes.
         '''
@@ -49,11 +117,11 @@ class Database:
         """ % student_id
         conn = self.connect()
         cursor = conn.execute(query)
-        result = [row._asdict()['student_id'] for row in cursor]
+        result = [row._asdict() for row in cursor]
         self.close(conn)
         return result
 
-    def get_student_schdule(student_id: str, semester: str,year: int) -> list[str]:
+    def get_student_schdule(self, student_id: str, semester: str,year: int) -> list[str]:
         '''
         Returns all studnet ids for students that are not in 5 classes.
         '''
@@ -70,7 +138,7 @@ class Database:
         self.close(conn)
         return result
 
-    def get_student_emergency_contact(student_id: str) -> list[str]:
+    def get_student_emergency_contact(self, student_id: str) -> list[str]:
         '''
         Returns all studnet ids for students that are not in 5 classes.
         '''
@@ -101,7 +169,7 @@ class Database:
         """ % args
         conn = self.connect()
         cursor = conn.execute(query)
-        result = [row._asdict()['student_id'] for row in cursor]
+        result = [row._asdict() for row in cursor]
         self.close(conn)
         return result
 
@@ -121,7 +189,7 @@ class Database:
         """
         conn = self.connect()
         cursor = conn.execute(query)
-        result = [row._asdict()['course_id'] for row in cursor]
+        result = [row._asdict() for row in cursor]
         self.close(conn)
         return result
 
@@ -145,7 +213,7 @@ class Database:
         '''
         Returns a list of course_ids that are prerequisites for the given course.
         '''
-        
+
         query = """
         SELECT P.prerequisite
         FROM prerequire P
@@ -153,10 +221,10 @@ class Database:
 
         conn = self.connect()
         cursor = conn.execute(query)
-        result = [row._asdict()['prerequisite'] for row in cursor]
+        result = [row._asdict() for row in cursor]
         self.close(conn)
         return result
-    
+
     def get_course_timeslot(self, course_id: str, semester: str,year: int) -> list[str]:
         '''
         Returns a the start_time of a given course at a specifed semester
