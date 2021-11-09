@@ -3,7 +3,6 @@ import axios from 'axios'
 import { DataGrid, GridRowsProp, GridColDef } from '@mui/x-data-grid'
 
 import Box from '@mui/material/Box/'
-import Paper from '@mui/material/Paper/'
 import Typography from '@mui/material/Typography'
 
 const createColumns = (data) => {
@@ -41,7 +40,7 @@ const createRow = (headers, data, i) => {
 
 const Dashboard = () => {
 
-  const [students, setStudents] = useState([{first_name: 'test', last_name: 'test'}])
+  const [students, setStudents] = useState([{first_name: '', last_name: ''}])
   const [student, setStudent] = useState(0)
   const [schedule, setSchedule] = useState([])
   const [studentIndex, setStudentIndex] = useState(0)
@@ -65,10 +64,12 @@ const Dashboard = () => {
 
 
   return (
-    <div>
+    <>
       <Box mb={4}>
-        <Typography mb={2} variant='h5'>{students[studentIndex]['first_name']}  {students[studentIndex]['last_name']} </Typography>
-        <div style={{ height: 300, width: "100%"}}>
+        <Typography mb={2} variant='h5'>
+         Student Schedule - {students[studentIndex]['last_name']},  {students[studentIndex]['first_name']}
+        </Typography>
+        <div style={{ height: 320, width: "100%"}}>
           <DataGrid
             rows={createRows(schedule)}
             columns={createColumns(schedule)}
@@ -90,7 +91,7 @@ const Dashboard = () => {
           />
         </div>
       </Box> 
-    </div>
+    </>
   )
 }
 
