@@ -1,6 +1,6 @@
 
 from sqlalchemy import *
-
+from sqlalchemy import exc
 
 class Database:
 
@@ -20,28 +20,129 @@ class Database:
         self.close(conn)
         return result
 
+    def get_table_where(self, select: str, table: str, where: str) -> list[dict]:
+        '''
+        Queries the database for a specific table and returns the results as a list of dictionaries.
+        '''
+        args = (select, table, where)
+        query = "SELECT %s FROM %s WHERE %s" % args
+        conn = self.connect()
+        cursor = conn.execute(query)
+        result = [row._asdict() for row in cursor]
+        self.close(conn)
+        return result
+
+    def insert_values (self, columns, vals, table: str):
+        q = "INSERT INTO "+table+" ("
+        for i in columns[:len(columns)-1]:
+            q += str(i) + ", "
+        q += str(columns[-1])+") "
+
+        v = "values ("
+        for i in vals[:len(vals)-1]:
+            if type(i) == str:
+                v += "\'"+i+"\', "
+            else :
+                v += str(i)+", "
+        if type(vals[-1]) == str:
+            v += "\'"+str(vals[-1])+"\')"
+        else:
+            v += str(vals[-1])+")"
+
+        insert_query = q+v
+        #print(insert_query)
+        conn = self.connect()
+        cursor = conn.execute(insert_query)
+        self.close(conn)
+
     def enroll_into_class(self, student_id: str, course_id: str, semester: str, year: int) -> list[dict]: # need to be tested
         '''
         enroll a student into a course by inserting into takes table in the database.
         '''
-        query = "SELECT %s FROM %s" % args
+        args = (student_id, course_id, semester, year)
+        query = "INSERT INTO Takes (sid, cid, semester, year) VALUES (%s, \'%s\', \'%s\', %s)" % args
         conn = self.connect()
         cursor = conn.execute(query)
         self.close(conn)
 
-    def update_student_course_grade(self, student_id: str, course_id: str, semester: str, year: int, grade: str) -> list[dict]: # need to be tested
+    def remove_course(self, student_id: str, course_id: str, semester: str, year: int) -> list[dict]: # need to be tested
+        '''
+        remove a course from student's schedule
+        '''
+        args = (student_id, course_id, semester, year)
+        query = "DELETE FROM Takes WHERE (sid = %s and cid = \'%s\' and  semester = \'%s\' and year = %s)" % args
+        conn = self.connect()
+        cursor = conn.execute(query)
+        self.close(conn)
+
+    def add_new_student_with_EC(self, student_id: str, fname: str, lname: str, grade: int, email: str, ssn: int, ec_fname: str, ec_lname: str, ec_phone_number: int, ec_email: str, ec_relation: str) -> list[dict]: # need to be tested
+        '''
+        add a student to the school's database with is emergency contact info.
+        '''
+        students_args = (student_id, fname, lname, grade, email)
+        query = "INSERT INTO Student (student_id, first_name, last_name, grade, email) VALUES (%s, \'%s\',\'%s\', \'%s\', \'%s\')" % students_args
+        conn = self.connect()
+        cursor = conn.execute(query)
+
+        ec_args = (ssn, ec_fname, ec_lname, ec_phone_number, ec_email)
+        ec_query = "INSERT INTO emergency_contact (ssn, first_name, last_name, phone_number, email) VALUES (%s, \'%s\',\'%s\' , %s, \'%s\')" % ec_args
+        cursor = conn.execute(ec_query)
+
+
+        S_has_EC = (student_id, ssn, ec_relation)
+        has_query = "INSERT INTO Has (sid, ecid, relation ) VALUES (%s, %s, \'%s\')" % S_has_EC
+        cursor = conn.execute(has_query)
+        self.close(conn)
+
+    def add_new_student(self, student_id: str, fname: str, lname: str, grade: int, email: str) -> list[dict]:
+        '''
+        add a student to the school's database.
+        '''
+        try:
+            students_args = (student_id, fname, lname, grade, email)
+            query = "INSERT INTO Student (student_id, first_name, last_name, grade, email) VALUES (%s, \'%s\',\'%s\', \'%s\', \'%s\')" % students_args
+            conn = self.connect()
+            cursor = conn.execute(query)
+            self.close(conn)
+            print('Student added successfully.') # return True?
+        except exc.IntegrityError:
+            print('Error: Duplicated student id or email.') #return False?
+            self.close(conn)
+
+    def update_student_course_grade(self, student_id: str, course_id: str, semester: str, year: int, grade: str) -> list[dict]:
         '''
         updates a student grade in a giving course.
         '''
-        args = grade, student_id, course_id, semester, year
-        query = " UPDATE Takes  SET grade = %s WHERE sid = %s and cid = %s and semester = %s and year = %s;" % args
+        args = (grade, student_id, course_id, semester, year)
+        query = " UPDATE Takes SET grade = \'%s\' WHERE sid = %s and cid = \'%s\' and semester = \'%s\' and year = %s;" % args
         conn = self.connect()
         cursor = conn.execute(query)
-        #result = [row._asdict() for row in cursor]
         self.close(conn)
-        #return result
 
-    def update_num_credits(self, student_id:str): # need to be tested
+    def has_taken_course(self, student_id: str, course_id: str):
+        '''
+        retrive the number of credits the studnet completed successfully.
+        '''
+        args = (student_id, course_id, course_id)
+        query = """SELECT  T.cid
+           FROM Takes T, Student S
+           WHERE S.student_id = T.sid and S.student_id = %s and T.cid = \'%s\' and T.grade not in (SELECT Distinct T1.grade
+            																	FROM Takes T1
+																	            WHERE T1.grade='F' and T1.cid = \'%s\')
+        """ % args
+
+        conn = self.connect()
+        cursor = conn.execute(query)
+        credits = [row._asdict() for row in cursor]
+        self.close(conn)
+
+        if  credits == []:
+            return False
+        else:
+            return True
+
+
+    def update_num_credits(self, student_id:str): # need to be tested after adding new semester, tested before update works
         '''
         retrive the number of credits the studnet completed successfully.
         '''
@@ -50,21 +151,37 @@ class Database:
            FROM Takes T, Student S
            WHERE S.student_id = T.sid and S.student_id = %s and T.grade not in (SELECT Distinct T1.grade
             																	FROM Takes T1
-																	            WHERE T1.grade='F')
+																	            WHERE T1.grade='F' or T1.grade is NULL)
         """ % student_id
 
         conn = self.connect()
         cursor = conn.execute(query)
         credits = [row._asdict()['count'] for row in cursor][0]
-
-        updatequery = " UPDATE Student SET num_completed_credits = %s WHERE sid = %s;" % (credits, student_id)
+        #print(credits)
+        updatequery = " UPDATE Student SET num_completed_credits = %s WHERE student_id = %s;" % (credits, student_id)
         cursor = conn.execute(updatequery)
 
         self.close(conn)
 
 
+    def get_number_of_courses(self, student_id: str, semester: str, year): # need to be tested after adding new semester, tested before update works
+        '''
+        retrive the number of credits the studnet completed successfully.
+        '''
+        args = (student_id, semester, year)
+        query = """SELECT count(*)
+        FROM Takes T, Student S
+        WHERE S.student_id = T.sid and  S.student_id = %s and semester = \'%s\' and year = %s
+        """ % args
 
-    def update_student_grade(self, student_id:str): # need to be tested
+        conn = self.connect()
+        cursor = conn.execute(query)
+        num_courses = [row._asdict()['count'] for row in cursor][0]
+        self.close(conn)
+        return num_courses
+
+
+    def update_student_grade(self, student_id:str): # # need to be tested after adding new semester , tested before update works
         '''
         Update the student grade by increasing it by one
         '''
@@ -72,10 +189,10 @@ class Database:
            FROM  Student S
            WHERE S.student_id = %s """ % student_id
         conn = self.connect()
-        cursor = conn.execute(query)
+        cursor = conn.execute(query1)
         grade = [row._asdict()['grade'] for row in cursor][0]
-
-        updatequery = " UPDATE Student SET grade = %s WHERE sid = %s;" % (grade+1, student_id)
+        print(grade+1)
+        updatequery = " UPDATE Student SET grade = \'%s\' WHERE sid = %s;" % (grade+1, student_id)
         cursor = conn.execute(updatequery)
 
         self.close(conn)
@@ -89,7 +206,7 @@ class Database:
         query = """
             SELECT S.student_id
             FROM Student S, Takes T
-            WHERE S.student_id = T.sid and T.semester = %s and T.year = %s
+            WHERE S.student_id = T.sid and T.semester = \'%s\' and T.year = %s
             GROUP BY S.student_id
             HAVING COUNT(S.student_id) < 5
             UNION
@@ -129,7 +246,7 @@ class Database:
         query = """
         SELECT  DISTINCT S.student_id, S.first_name, S.last_name, C.name, C.course_id, A.classroom, A.day_of_week, A.start_time, A.end_time
         FROM Student S, Takes T, Course C, Assigned_to A
-        WHERE S.student_id = T. sid and T.cid = C.course_id and A.cid = C.course_id and T.semester = %s and T.year = %s and S.student_id = %s
+        WHERE S.student_id = T. sid and T.cid = C.course_id and A.cid = C.course_id and T.semester = \'%s\' and T.year = %s and S.student_id = %s
         ORDER BY A.day_of_week, A.start_time;
         """ % args
         conn = self.connect()
@@ -145,8 +262,8 @@ class Database:
         query = """
         SELECT  S.student_id, S.first_name As student_first_name , S.last_name As student_last_name, H.relation, E.first_name As contact_first_name, E.last_name As contact_last_name, E.phone_number
         FROM Student S, has H, Emergency_Contact E
-        WHERE S.student_id = %s and E.ssn = H.ecid;
-        """ % student_id
+        WHERE S.student_id = %s and E.ssn = H.ecid and H.sid = %s;
+        """ % (student_id, student_id)
         conn = self.connect()
         cursor = conn.execute(query)
         result = [row._asdict() for row in cursor]
@@ -165,11 +282,11 @@ class Database:
             FROM Student S
             WHERE S.student_id not in (SELECT S1.student_id
                         FROM Student S1, Takes T
-                        WHERE S1.student_id = T.sid and semester = %s and year = %s)
+                        WHERE S1.student_id = T.sid and semester = \'%s\' and year = %s)
         """ % args
         conn = self.connect()
         cursor = conn.execute(query)
-        result = [row._asdict() for row in cursor]
+        result = [row._asdict()['student_id'] for row in cursor]
         self.close(conn)
         return result
 
@@ -185,11 +302,11 @@ class Database:
             Group by  T.cid
             Having count(*) < (SELECT Distinct R.capacity
             FROM  Classroom R, assigned_to A
-            Where T.cid = A.cid and  R.cla
+            Where T.cid = A.cid and  R.classroom_id=A.classroom)
         """
         conn = self.connect()
         cursor = conn.execute(query)
-        result = [row._asdict() for row in cursor]
+        result = [row._asdict()['cid'] for row in cursor]
         self.close(conn)
         return result
 
@@ -217,11 +334,11 @@ class Database:
         query = """
         SELECT P.prerequisite
         FROM prerequire P
-        WHERE P.cid = %s """ % course_id
+        WHERE P.cid = \'%s\' """ % course_id
 
         conn = self.connect()
         cursor = conn.execute(query)
-        result = [row._asdict() for row in cursor]
+        result = [row._asdict()['prerequisite'] for row in cursor]
         self.close(conn)
         return result
 
@@ -234,7 +351,7 @@ class Database:
         query = """
         SELECT Distinct A.start_time
         FROM   Course C, Assigned_to A
-        WHERE A.cid = C.course_id and A.semester = %s and A.year = %s and C.course_id = %s
+        WHERE A.cid = C.course_id and A.semester = \'%s\' and A.year = %s and C.course_id = \'%s\'
         """ % args
 
         conn = self.connect()
@@ -253,11 +370,11 @@ class Database:
         SELECT  C.name
         FROM Student S, Takes T, Course C, Assigned_to A
         WHERE S.student_id = T. sid and T.cid = C.course_id
-        and A.cid = C.course_id and T.semester = %s
+        and A.cid = C.course_id and T.semester = \'%s\'
         and T.year = %s and S.student_id = %s and A.start_time in (
         SELECT Distinct A1.start_time
         FROM   Course C1, Assigned_to A1
-        WHERE A1.cid = C1.course_id and A1.semester = %s and A1.year = %s and C1.course_id = %s)
+        WHERE A1.cid = C1.course_id and A1.semester = \'%s\' and A1.year = %s and C1.course_id = \'%s\')
 
         """ % args
 
