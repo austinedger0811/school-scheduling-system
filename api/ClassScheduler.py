@@ -11,7 +11,7 @@ class ClassScheduler:
         # add course offersings to the database.
 
 
-    def schedule_students(self):
+    def schedule_students(self): # need to be tested
         '''
         Schedules all students who currently do not have full schedules.
         '''
@@ -41,7 +41,7 @@ class ClassScheduler:
         #- add to assigned_to
         for i in assigned_to:
             self.db.insert_values(['cid','semester','year','classroom','day_of_week','start_time','end_time'],[i['cid'], semester, year,i['classroom'],i['day_of_week'], str(i['start_time']), str(i['end_time'])],'assigned_to')
-
+        self.update_studnet_info_after_semester_ends('fall',2021)
 
 
     def get_list_of_fullfilled_requirements(self, student_requirements):
@@ -94,7 +94,7 @@ class ClassScheduler:
         Schedules a student in 5 classes.
         '''
 
-        while (student_id in self.db.get_student_ids_without_full_schedule(semester, year)): # less than 5 courses
+        while (student_id in self.db.get_student_ids_without_full_schedule(semester, year)): # less than 5 courses, more testing with requierments
             requirements = self.db.get_student_requirements_status(student_id)
             all_possible_course = self.db.get_list_possible_courses_to_enroll(student_id)
             all_possible_course_ids = [all_possible_course[i]['course_id'] for i in range(len(all_possible_course))]
@@ -121,18 +121,69 @@ class ClassScheduler:
 
                 #insert to takes table
                 self.db.enroll_into_class(student_id, selected_course , semester, year)
-                print('selected_course')
-                print(selected_course)
+                #print('selected_course')
+                #print(selected_course)
+
+    def grade_value(self, grade):
+        '''
+        Returns the grade value for a letter grade
+        '''
+        if grade == 'A':
+            return 4
+        elif grade == 'B':
+            return 3
+        elif grade == 'C':
+            return 2
+        elif grade == 'D':
+            return 1
+        elif grade == 'F':
+            return 0
 
 
-    def update_studnet_info_after_semester_ends(student_id: str): # should we call it in add_semester ?
-        self.update_studnet_grade_in_course() # how to get grades and fill each course, uploaded sheet (sid,cid,grade)? # need to be tested
-        self.db.update_num_credits(student_id)
-        self.db.update_student_grade(student_id)
-        # GPA? create a method
+    def calculate_gpa(self, sid):
+        '''
+        calculate the GPA for a student and updates it in the database
+        '''
+        total_credit = 0
+        total_grade_values = 0
+        credits_grads = self.db.get_table_where('S.num_completed_credits, T.grade','Takes T, Student S', 'T.sid = S.student_id and T.sid = %s'%(sid))
+        print(credits_grads)
 
-    def update_studnet_grade_in_course(self, student_id: str, course_id: str, grade: str, semester: str,year: int):
-        self.db.update_student_course_grade(student_id, course_id, semester, year, grade)
+        for r in credits_grads:
+            credit = r['num_completed_credits']
+            grade = r['grade']
+            print(self.grade_value(grade))
+            total_grade_values += self.grade_value(grade)
+            total_credit = credit
+        gpa = total_grade_values / total_credit
+        self.db.update_student_gpa(sid, gpa)
+
+
+
+
+    def update_studnet_info_after_semester_ends(self, semester, year): # should we call it in add_semester ?
+        all_sids  = self.update_studnet_grade_in_courses(semester, year) # how to get grades and fill each course, uploaded sheet (sid,cid,grade)?  #random assigement
+        for sid in all_sids:
+            self.db.update_num_credits(sid)
+            self.calculate_gpa(sid)
+        #self.db.update_student_grade(student_id) # after a year
+        # GPA? create a method?
+
+    def update_studnet_grade_in_courses(self, semester: str, year: int):
+        '''
+        Updates all students grades in all enrolled courses at a given semester by randomly chosen grade.
+        '''
+
+        sid_cids = self.db.get_table_where('sid, cid','Takes', 'semester= \'%s\' and year = %s'%(semester,year))
+        grades = ['A','B','C','D','F']
+        all_sids = []
+        for r in sid_cids:
+            sid = r['sid']
+            cid = r['cid']
+            grade = random.choice(grades)
+            self.db.update_student_course_grade(sid, cid, semester, year, grade)
+            all_sids.append(sid)
+        return all_sids
 
     def remove_completed_courses(self, avalible_course_ids: str, completed_course_ids) -> list[str]:
         return list(set(avalible_course_ids) - set(completed_course_ids))

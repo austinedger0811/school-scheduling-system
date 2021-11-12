@@ -1,6 +1,7 @@
 
 from sqlalchemy import *
 from sqlalchemy import exc
+import pandas as pd
 
 class Database:
 
@@ -33,6 +34,10 @@ class Database:
         return result
 
     def insert_values (self, columns, vals, table: str):
+        '''
+        insert values to columns in a given table.
+        '''
+
         q = "INSERT INTO "+table+" ("
         for i in columns[:len(columns)-1]:
             q += str(i) + ", "
@@ -114,7 +119,17 @@ class Database:
         updates a student grade in a giving course.
         '''
         args = (grade, student_id, course_id, semester, year)
-        query = " UPDATE Takes SET grade = \'%s\' WHERE sid = %s and cid = \'%s\' and semester = \'%s\' and year = %s;" % args
+        query = " UPDATE Takes SET grade = \'%s\' WHERE sid = %s and cid = \'%s\' and semester = \'%s\' and year = %s" % args
+        conn = self.connect()
+        cursor = conn.execute(query)
+        self.close(conn)
+
+    def update_student_gpa(self, student_id: str, gpa: float) -> list[dict]:
+        '''
+        updates a student grade in a giving course.
+        '''
+        args = (gpa, student_id)
+        query = " UPDATE Student SET gpa = %s WHERE sid = %s" % args
         conn = self.connect()
         cursor = conn.execute(query)
         self.close(conn)
@@ -158,7 +173,7 @@ class Database:
         cursor = conn.execute(query)
         credits = [row._asdict()['count'] for row in cursor][0]
         #print(credits)
-        updatequery = " UPDATE Student SET num_completed_credits = %s WHERE student_id = %s;" % (credits, student_id)
+        updatequery = " UPDATE Student SET num_completed_credits = %s WHERE student_id = %s" % (credits, student_id)
         cursor = conn.execute(updatequery)
 
         self.close(conn)
@@ -192,7 +207,7 @@ class Database:
         cursor = conn.execute(query1)
         grade = [row._asdict()['grade'] for row in cursor][0]
         print(grade+1)
-        updatequery = " UPDATE Student SET grade = \'%s\' WHERE sid = %s;" % (grade+1, student_id)
+        updatequery = " UPDATE Student SET grade = \'%s\' WHERE sid = %s" % (grade+1, student_id)
         cursor = conn.execute(updatequery)
 
         self.close(conn)
@@ -238,17 +253,17 @@ class Database:
         self.close(conn)
         return result
 
-    def get_student_schdule(self, student_id: str, semester: str,year: int) -> list[str]:
+    def get_student_schdule(self, student_id: str, semester: str,year: int) -> list[str]: # add teacher name, office number
         '''
         Returns all studnet ids for students that are not in 5 classes.
         '''
+
         args = (semester, year, student_id)
         query = """
-        SELECT  DISTINCT S.student_id, S.first_name, S.last_name, C.name, C.course_id, A.classroom, A.day_of_week, A.start_time, A.end_time
-        FROM Student S, Takes T, Course C, Assigned_to A
-        WHERE S.student_id = T. sid and T.cid = C.course_id and A.cid = C.course_id and T.semester = \'%s\' and T.year = %s and S.student_id = %s
-        ORDER BY A.day_of_week, A.start_time;
-        """ % args
+        SELECT  DISTINCT S.student_id, S.first_name, S.last_name, C.name AS Course_Name, C.course_id, A.classroom, A.day_of_week, A.start_time, A.end_time, T1.first_name AS Teacher_First_Name, T1.last_name AS Teacher_Last_Name, T1.office_number
+        FROM Student S, Takes T, Course C, Assigned_to A, Teacher T1, Teach T2
+        WHERE S.student_id = T. sid and T.cid = C.course_id and A.cid = C.course_id and T.semester = %s and T.year = %s and S.student_id = 1000 and T2.tid= T1.teacher_id and C.course_id = T2.cid and T2.semester =T.semester and T2.year =T.year
+        ORDER BY A.day_of_week, A.start_time""" % args
         conn = self.connect()
         cursor = conn.execute(query)
         result = [row._asdict() for row in cursor]
@@ -262,7 +277,7 @@ class Database:
         query = """
         SELECT  S.student_id, S.first_name As student_first_name , S.last_name As student_last_name, H.relation, E.first_name As contact_first_name, E.last_name As contact_last_name, E.phone_number
         FROM Student S, has H, Emergency_Contact E
-        WHERE S.student_id = %s and E.ssn = H.ecid and H.sid = %s;
+        WHERE S.student_id = %s and E.ssn = H.ecid and H.sid = %s
         """ % (student_id, student_id)
         conn = self.connect()
         cursor = conn.execute(query)
@@ -317,7 +332,7 @@ class Database:
         query = """
         Select T.cid, T.grade
         From Takes T
-        Where  T.sid= %s  and T.grade is not NULL;
+        Where  T.sid= %s  and T.grade is not NULL
         """ % student_id
 
         conn = self.connect()
@@ -434,7 +449,35 @@ class Database:
 
 
     def clear_schedule(self):
-        return
+        '''
+        reomve all the data from takes.
+        '''
+
+        query = """DELETE FROM Takes;"""
+        conn = self.connect()
+        cursor = conn.execute(query)
+        self.close(conn)
+
+
+    def add_schedule_from_file(self):
+        '''
+        adds data from a csv file.
+        '''
+
+        #clear takes
+        df = pd.read_csv('Takes.csv')
+        df = df.drop('letter_grade',axis=1)
+        cols = ", ".join([str(i) for i in df.columns.tolist()])
+
+        conn = self.connect()
+
+        for i,row in df.iterrows():
+            query = "INSERT INTO Takes (" +cols + ") VALUES (%s, \'%s\', \'%s\', %s)"% tuple(row)
+            cursor = conn.execute(query)
+
+        self.close(conn)
+
+
 
     def connect(self):
         '''
