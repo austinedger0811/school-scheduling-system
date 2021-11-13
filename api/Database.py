@@ -55,7 +55,6 @@ class Database:
             v += str(vals[-1])+")"
 
         insert_query = q+v
-        #print(insert_query)
         conn = self.connect()
         cursor = conn.execute(insert_query)
         self.close(conn)
@@ -129,7 +128,7 @@ class Database:
         updates a student grade in a giving course.
         '''
         args = (gpa, student_id)
-        query = " UPDATE Student SET gpa = %s WHERE sid = %s" % args
+        query = " UPDATE Student SET gpa = %s WHERE student_id = %s" % args
         conn = self.connect()
         cursor = conn.execute(query)
         self.close(conn)
@@ -172,7 +171,6 @@ class Database:
         conn = self.connect()
         cursor = conn.execute(query)
         credits = [row._asdict()['count'] for row in cursor][0]
-        #print(credits)
         updatequery = " UPDATE Student SET num_completed_credits = %s WHERE student_id = %s" % (credits, student_id)
         cursor = conn.execute(updatequery)
 
@@ -206,7 +204,6 @@ class Database:
         conn = self.connect()
         cursor = conn.execute(query1)
         grade = [row._asdict()['grade'] for row in cursor][0]
-        print(grade+1)
         updatequery = " UPDATE Student SET grade = \'%s\' WHERE sid = %s" % (grade+1, student_id)
         cursor = conn.execute(updatequery)
 
@@ -217,23 +214,23 @@ class Database:
         Returns all studnet ids for students that are not in 5 classes.
         and studnets newly enrolled and have not been enrolled into classes
         '''
-        args = (semester, year)
+        args = (semester, year,semester, year)
         query = """
-            SELECT S.student_id
-            FROM Student S, Takes T
-            WHERE S.student_id = T.sid and T.semester = \'%s\' and T.year = %s
-            GROUP BY S.student_id
-            HAVING COUNT(S.student_id) < 5
+            SELECT T.sid
+            FROM Takes T
+            WHERE T.semester = \'%s\' and T.year = %s
+            GROUP BY T.sid
+            HAVING COUNT(T.sid) < 5
             UNION
             SELECT S.student_id
             FROM Student S
-            WHERE S.student_id not in (SELECT S.student_id
-                                       FROM Student S, Takes T
-                                       WHERE S.student_id = T.sid)
+            WHERE S.student_id not in (SELECT T.sid
+                                       FROM  Takes T
+                                       WHERE T.semester = \'%s\' and T.year = %s)
         """ % args
         conn = self.connect()
         cursor = conn.execute(query)
-        result = [row._asdict()['student_id'] for row in cursor]
+        result = [row._asdict()['sid'] for row in cursor]
         self.close(conn)
         return result
 
@@ -262,7 +259,7 @@ class Database:
         query = """
         SELECT  DISTINCT S.student_id, S.first_name, S.last_name, C.name AS Course_Name, C.course_id, A.classroom, A.day_of_week, A.start_time, A.end_time, T1.first_name AS Teacher_First_Name, T1.last_name AS Teacher_Last_Name, T1.office_number
         FROM Student S, Takes T, Course C, Assigned_to A, Teacher T1, Teach T2
-        WHERE S.student_id = T. sid and T.cid = C.course_id and A.cid = C.course_id and T.semester = %s and T.year = %s and S.student_id = 1000 and T2.tid= T1.teacher_id and C.course_id = T2.cid and T2.semester =T.semester and T2.year =T.year
+        WHERE S.student_id = T. sid and T.cid = C.course_id and A.cid = C.course_id and T.semester = \'%s\' and T.year = %s and S.student_id = %s and T2.tid= T1.teacher_id and C.course_id = T2.cid and T2.semester =T.semester and T2.year =T.year
         ORDER BY A.day_of_week, A.start_time""" % args
         conn = self.connect()
         cursor = conn.execute(query)

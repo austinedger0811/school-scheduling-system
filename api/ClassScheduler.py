@@ -6,42 +6,39 @@ class ClassScheduler:
 
     def __init__(self):
         self.db = Database()
-        # self.semester = X
-        # self.year = Y
-        # add course offersings to the database.
 
 
-    def schedule_students(self): # need to be tested
+    def schedule_students(self, semester: str, year:int): # need to be tested
         '''
         Schedules all students who currently do not have full schedules.
         '''
         student_ids = self.db.get_student_ids_without_full_schedule(semester, year)
         for id in student_ids:
-            self.schedule_student(id,semester, year)
-        return student_ids
+            self.schedule_student(id, semester, year)
+        #return student_ids
 
     def add_semester(self, semester: str, year:int):
         '''
         add the add a new semester with all its offersings.
         '''
         #- add to academic_semester
-        #self.db.insert_values(['semester','year','start_date','end_date'],[semester, year, '1/18/2022','5/13/2022'],'Academic_Semester')
+        self.db.insert_values(['semester','year','start_date','end_date'],[semester, year, '1/18/2022','5/13/2022'],'Academic_Semester')
         #- add to taught_in table
-        #taught_in_table = self.db.get_table_where('*','taught_in','semester = \'fall\' and year = 2021')
-        #for i in taught_in_table:
-        #    self.db.insert_values(['cid','semester','year'],[i['cid'], semester, year],'taught_in')
+        taught_in_table = self.db.get_table_where('*','taught_in','semester = \'fall\' and year = 2021')
+        for i in taught_in_table:
+            self.db.insert_values(['cid','semester','year'],[i['cid'], semester, year],'taught_in')
 
         #- add to teachs
-        #teach_table = self.db.get_table_where('*','teach','semester = \'fall\' and year = 2021')
+        teach_table = self.db.get_table_where('*','teach','semester = \'fall\' and year = 2021')
 
-        #for i in teach_table:
-        #    self.db.insert_values(['cid','tid','semester','year'],[i['cid'],i['tid'], semester, year],'teach')
+        for i in teach_table:
+            self.db.insert_values(['cid','tid','semester','year'],[i['cid'],i['tid'], semester, year],'teach')
 
         assigned_to = self.db.get_table_where('*','assigned_to','semester = \'fall\' and year = 2021')
         #- add to assigned_to
         for i in assigned_to:
             self.db.insert_values(['cid','semester','year','classroom','day_of_week','start_time','end_time'],[i['cid'], semester, year,i['classroom'],i['day_of_week'], str(i['start_time']), str(i['end_time'])],'assigned_to')
-        self.update_studnet_info_after_semester_ends('fall',2021)
+        self.update_studnet_info_after_semester_ends('Spring',2022) # how can we better represent the previous semester
 
 
     def get_list_of_fullfilled_requirements(self, student_requirements):
@@ -94,14 +91,14 @@ class ClassScheduler:
         Schedules a student in 5 classes.
         '''
 
-        while (student_id in self.db.get_student_ids_without_full_schedule(semester, year)): # less than 5 courses, more testing with requierments
-            requirements = self.db.get_student_requirements_status(student_id)
+        all_possible_course_ids_with_reqs=['placeholder']
+
+        while (student_id in self.db.get_student_ids_without_full_schedule(semester, year) and len(all_possible_course_ids_with_reqs)!=0): # less than 5 courses, more testing with requierments
             all_possible_course = self.db.get_list_possible_courses_to_enroll(student_id)
             all_possible_course_ids = [all_possible_course[i]['course_id'] for i in range(len(all_possible_course))]
+            while (self.db.get_number_of_courses(student_id, semester, year) < 5) and len(all_possible_course_ids_with_reqs)!=0:
+                requirements = self.db.get_student_requirements_status(student_id)
 
-            # requirement commponent (get course ids of courses of reqs to be completed)
-
-            while (self.db.get_number_of_courses(student_id, semester, year) < 5):
                 all_possible_course_ids_with_reqs = []
                 for c in all_possible_course:
                     if c['requirement_type'] not in self.get_list_of_fullfilled_requirements(requirements):
@@ -109,20 +106,24 @@ class ClassScheduler:
 
                 selected_course = random.choice(all_possible_course_ids_with_reqs)
                 timeconflict = True;
-
-                while(timeconflict):
+                while(timeconflict and len(all_possible_course_ids_with_reqs)!=0):
                     val = self.db.check_time_conflict(student_id, selected_course, semester, year)
                     if val == []:
                         timeconflict = False
+                        all_possible_course_ids_with_reqs.remove(selected_course)
+
                     else:
                         timeconflict = True
-                        selected_course = random.choice(all_possible_course_ids_with_reqs)
+                        all_possible_course_ids_with_reqs.remove(selected_course)
+                        if len(all_possible_course_ids_with_reqs) !=0:
+                            selected_course = random.choice(all_possible_course_ids_with_reqs)
+
 
 
                 #insert to takes table
-                self.db.enroll_into_class(student_id, selected_course , semester, year)
-                #print('selected_course')
-                #print(selected_course)
+                if timeconflict == False:
+                    self.db.enroll_into_class(student_id, selected_course , semester, year)
+
 
     def grade_value(self, grade):
         '''
@@ -136,7 +137,7 @@ class ClassScheduler:
             return 2
         elif grade == 'D':
             return 1
-        elif grade == 'F':
+        else:
             return 0
 
 
@@ -147,17 +148,15 @@ class ClassScheduler:
         total_credit = 0
         total_grade_values = 0
         credits_grads = self.db.get_table_where('S.num_completed_credits, T.grade','Takes T, Student S', 'T.sid = S.student_id and T.sid = %s'%(sid))
-        print(credits_grads)
 
         for r in credits_grads:
             credit = r['num_completed_credits']
             grade = r['grade']
-            print(self.grade_value(grade))
             total_grade_values += self.grade_value(grade)
             total_credit = credit
-        gpa = total_grade_values / total_credit
-        self.db.update_student_gpa(sid, gpa)
-
+        if total_credit!=0:
+            gpa = total_grade_values / total_credit
+            self.db.update_student_gpa(sid, gpa)
 
 
 
