@@ -474,7 +474,7 @@ class Database:
         '''
         args = (semester, year)
         query = """DELETE FROM Takes WHERE semester=\'%s\' AND year=%s;""" % args
-        query 1= """DELETE FROM academic_semesterWHERE semester=\'%s\' AND year=%s;""" % args
+        query 1= """DELETE FROM academic_semester WHERE semester=\'%s\' AND year=%s;""" % args
 
         conn = self.connect()
         cursor = conn.execute(query)
