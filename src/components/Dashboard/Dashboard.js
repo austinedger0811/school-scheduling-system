@@ -4,6 +4,8 @@ import { DataGrid } from '@mui/x-data-grid'
 
 import Box from '@mui/material/Box/'
 import Button from '@mui/material/Button'
+import Fab from '@mui/material/Fab'
+import AddIcon from '@mui/icons-material/Add'
 import Stack from '@mui/material/Stack'
 import Select from '@mui/material/Select'
 import MenuItem from '@mui/material/MenuItem'
@@ -92,18 +94,44 @@ const Dashboard = () => {
     return `${data.semester} ${data.year}`
   }
 
+  const scheduleSemester = () => {
+    axios.post('http://localhost:5000/api/v1/schedule_semester', {
+      semester: semester.semester,
+      year: semester.year,
+      student: student
+    }).then((response) => {
+      setSchedule(response.data)
+    }).catch(error => console.log(error))
+  }
+
   const deleteSchedule = () => {
     axios.post('http://localhost:5000/api/v1/clear_schedule', {
       semester: semester.semester,
-      year: semester.year 
-    })
-    console.log('deleted')
+      year: semester.year, 
+      sid: student
+    }).then((response) => {
+      setSchedule(response.data)
+    }).catch(error => console.log(error))
+  }
+
+  const addSemester = () => {
+    axios.post('http://localhost:5000/api/v1/add_semester')
+    .then((response) => {
+      setSemesters(response.data)
+      console.log(response.data)
+    }).catch(error => console.log(error)) 
+
   }
 
   return (
     <>
       <Box mb={4}>
         <Stack spacing={4} direction="row">
+          <Box>
+            <Fab color="primary" aria-label="add" onClick={addSemester}>
+              <AddIcon />
+            </Fab>
+          </Box>
           <FormControl fullWidth>
             <InputLabel id="demo-simple-select-label">Semester</InputLabel>
             <Select
@@ -116,7 +144,7 @@ const Dashboard = () => {
               {semesters.map((item, id) => <MenuItem id={id} key={id} value={semesterToString(item)}>{semesterToString(item)}</MenuItem>)}
             </Select>
           </FormControl>
-          <Button fullWidth variant="contained">Schedule Students</Button>
+          <Button fullWidth variant="contained" onClick={scheduleSemester}>Schedule Students</Button>
           <Button fullWidth variant="contained" color="error" onClick={deleteSchedule}>Clear Schedule</Button>
         </Stack>
       </Box>

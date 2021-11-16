@@ -18,10 +18,13 @@ class ClassScheduler:
             self.schedule_student(id, semester, year)
         # return student_ids
 
-    def add_semester(self, semester: str, year: int):
+    def add_semester(self, current_semester: str, current_year: int):
         '''
         add the add a new semester with all its offersings.
         '''
+        year = current_year + 1 if current_semester == "fall" else current_year
+        semester = "Spring" if current_semester == "fall" else "fall"
+
         # - add to academic_semester
         self.db.insert_values(['semester', 'year', 'start_date', 'end_date'], [
                               semester, year, '1/18/2022', '5/13/2022'], 'Academic_Semester')
@@ -48,9 +51,8 @@ class ClassScheduler:
                                   i['cid'], semester, year, i['classroom'], i['day_of_week'], str(i['start_time']), str(i['end_time'])], 'assigned_to')
         # how can we better represent the previous semester
 
-        prev_year = year - 1 if semester == "Spring" else year
-        prev_semester = "Spring" if semester == "Fall" else "Fall"
-        self.update_studnet_info_after_semester_ends(prev_semester, prev_year)
+        self.update_studnet_info_after_semester_ends(
+            current_semester, current_year)
 
     def get_list_of_fullfilled_requirements(self, student_requirements):
         '''
