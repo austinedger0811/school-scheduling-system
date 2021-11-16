@@ -285,3 +285,4 @@ class ClassScheduler:
         This method should clear the schedule of all students.
         '''
         self.db.clear_schedule(semester, year)
+        
