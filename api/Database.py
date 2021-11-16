@@ -3,6 +3,7 @@ from sqlalchemy import *
 from sqlalchemy import exc
 import pandas as pd
 
+
 class Database:
 
     def __init__(self):
@@ -33,7 +34,7 @@ class Database:
         self.close(conn)
         return result
 
-    def insert_values (self, columns, vals, table: str):
+    def insert_values(self, columns, vals, table: str):
         '''
         insert values to columns in a given table.
         '''
@@ -47,7 +48,7 @@ class Database:
         for i in vals[:len(vals)-1]:
             if type(i) == str:
                 v += "\'"+i+"\', "
-            else :
+            else:
                 v += str(i)+", "
         if type(vals[-1]) == str:
             v += "\'"+str(vals[-1])+"\')"
@@ -59,7 +60,8 @@ class Database:
         cursor = conn.execute(insert_query)
         self.close(conn)
 
-    def enroll_into_class(self, student_id: str, course_id: str, semester: str, year: int) -> list[dict]: # need to be tested
+    # need to be tested
+    def enroll_into_class(self, student_id: str, course_id: str, semester: str, year: int) -> list[dict]:
         '''
         enroll a student into a course by inserting into takes table in the database.
         '''
@@ -69,7 +71,8 @@ class Database:
         cursor = conn.execute(query)
         self.close(conn)
 
-    def remove_course(self, student_id: str, course_id: str, semester: str, year: int) -> list[dict]: # need to be tested
+    # need to be tested
+    def remove_course(self, student_id: str, course_id: str, semester: str, year: int) -> list[dict]:
         '''
         remove a course from student's schedule
         '''
@@ -79,7 +82,8 @@ class Database:
         cursor = conn.execute(query)
         self.close(conn)
 
-    def add_new_student_with_EC(self, student_id: str, fname: str, lname: str, grade: int, email: str, ssn: int, ec_fname: str, ec_lname: str, ec_phone_number: int, ec_email: str, ec_relation: str) -> list[dict]: # need to be tested
+    # need to be tested
+    def add_new_student_with_EC(self, student_id: str, fname: str, lname: str, grade: int, email: str, ssn: int, ec_fname: str, ec_lname: str, ec_phone_number: int, ec_email: str, ec_relation: str) -> list[dict]:
         '''
         add a student to the school's database with is emergency contact info.
         '''
@@ -91,7 +95,6 @@ class Database:
         ec_args = (ssn, ec_fname, ec_lname, ec_phone_number, ec_email)
         ec_query = "INSERT INTO emergency_contact (ssn, first_name, last_name, phone_number, email) VALUES (%s, \'%s\',\'%s\' , %s, \'%s\')" % ec_args
         cursor = conn.execute(ec_query)
-
 
         S_has_EC = (student_id, ssn, ec_relation)
         has_query = "INSERT INTO Has (sid, ecid, relation ) VALUES (%s, %s, \'%s\')" % S_has_EC
@@ -108,9 +111,9 @@ class Database:
             conn = self.connect()
             cursor = conn.execute(query)
             self.close(conn)
-            print('Student added successfully.') # return True?
+            print('Student added successfully.')  # return True?
         except exc.IntegrityError:
-            print('Error: Duplicated student id or email.') #return False?
+            print('Error: Duplicated student id or email.')  # return False?
             self.close(conn)
 
     def update_student_course_grade(self, student_id: str, course_id: str, semester: str, year: int, grade: str) -> list[dict]:
@@ -150,13 +153,13 @@ class Database:
         credits = [row._asdict() for row in cursor]
         self.close(conn)
 
-        if  credits == []:
+        if credits == []:
             return False
         else:
             return True
 
-
-    def update_num_credits(self, student_id:str): # need to be tested after adding new semester, tested before update works
+    # need to be tested after adding new semester, tested before update works
+    def update_num_credits(self, student_id: str):
         '''
         retrive the number of credits the studnet completed successfully.
         '''
@@ -171,13 +174,14 @@ class Database:
         conn = self.connect()
         cursor = conn.execute(query)
         credits = [row._asdict()['count'] for row in cursor][0]
-        updatequery = " UPDATE Student SET num_completed_credits = %s WHERE student_id = %s" % (credits, student_id)
+        updatequery = " UPDATE Student SET num_completed_credits = %s WHERE student_id = %s" % (
+            credits, student_id)
         cursor = conn.execute(updatequery)
 
         self.close(conn)
 
-
-    def get_number_of_courses(self, student_id: str, semester: str, year): # need to be tested after adding new semester, tested before update works
+    # need to be tested after adding new semester, tested before update works
+    def get_number_of_courses(self, student_id: str, semester: str, year):
         '''
         retrive the number of credits the studnet completed successfully.
         '''
@@ -193,8 +197,8 @@ class Database:
         self.close(conn)
         return num_courses
 
-
-    def update_student_grade(self, student_id:str): # # need to be tested after adding new semester , tested before update works
+    # need to be tested after adding new semester , tested before update works
+    def update_student_grade(self, student_id: str):
         '''
         Update the student grade by increasing it by one
         '''
@@ -204,17 +208,18 @@ class Database:
         conn = self.connect()
         cursor = conn.execute(query1)
         grade = [row._asdict()['grade'] for row in cursor][0]
-        updatequery = " UPDATE Student SET grade = \'%s\' WHERE sid = %s" % (grade+1, student_id)
+        updatequery = " UPDATE Student SET grade = \'%s\' WHERE sid = %s" % (
+            grade+1, student_id)
         cursor = conn.execute(updatequery)
 
         self.close(conn)
 
-    def get_student_ids_without_full_schedule(self, semester: str,year: int) -> list[str]:
+    def get_student_ids_without_full_schedule(self, semester: str, year: int) -> list[str]:
         '''
         Returns all studnet ids for students that are not in 5 classes.
         and studnets newly enrolled and have not been enrolled into classes
         '''
-        args = (semester, year,semester, year)
+        args = (semester, year, semester, year)
         query = """
             SELECT T.sid
             FROM Takes T
@@ -250,20 +255,26 @@ class Database:
         self.close(conn)
         return result
 
-    def get_student_schdule(self, student_id: str, semester: str,year: int) -> list[str]: # add teacher name, office number
+    # add teacher name, office number
+    def get_student_schdule(self, student_id: int, semester: str, year: int) -> list[str]:
         '''
         Returns all studnet ids for students that are not in 5 classes.
         '''
 
         args = (semester, year, student_id)
         query = """
-        SELECT  DISTINCT S.student_id, S.first_name, S.last_name, C.name AS Course_Name, C.course_id, A.classroom, A.day_of_week, A.start_time, A.end_time, T1.first_name AS Teacher_First_Name, T1.last_name AS Teacher_Last_Name, T1.office_number
+        SELECT  DISTINCT S.student_id, S.first_name, S.last_name, C.name AS Course_Name, C.course_id, A.classroom, A.start_time, A.end_time, T1.first_name AS Teacher_First_Name, T1.last_name AS Teacher_Last_Name, T1.office_number
         FROM Student S, Takes T, Course C, Assigned_to A, Teacher T1, Teach T2
         WHERE S.student_id = T. sid and T.cid = C.course_id and A.cid = C.course_id and T.semester = \'%s\' and T.year = %s and S.student_id = %s and T2.tid= T1.teacher_id and C.course_id = T2.cid and T2.semester =T.semester and T2.year =T.year
-        ORDER BY A.day_of_week, A.start_time""" % args
+        ORDER BY A.start_time""" % args
         conn = self.connect()
         cursor = conn.execute(query)
         result = [row._asdict() for row in cursor]
+        for res in result:
+            start = res['start_time'].strftime("%H:%M")
+            end = res['end_time'].strftime("%H:%M")
+            res['start_time'] = start
+            res['end_time'] = end
         self.close(conn)
         return result
 
@@ -281,7 +292,6 @@ class Database:
         result = [row._asdict() for row in cursor]
         self.close(conn)
         return result
-
 
     def get_student_ids_not_enrolled_in_semester(self, semester: str, year: int) -> list[str]:
         '''
@@ -354,7 +364,7 @@ class Database:
         self.close(conn)
         return result
 
-    def get_course_timeslot(self, course_id: str, semester: str,year: int) -> list[str]:
+    def get_course_timeslot(self, course_id: str, semester: str, year: int) -> list[str]:
         '''
         Returns a the start_time of a given course at a specifed semester
         '''
@@ -372,7 +382,7 @@ class Database:
         self.close(conn)
         return result
 
-    def check_time_conflict(self, student_id: str ,course_id: str, semester: str,year: int) -> list[str]:
+    def check_time_conflict(self, student_id: str, course_id: str, semester: str, year: int) -> list[str]:
         '''
         Returns an empty list if there is no conflict, otherwise, it returns a table of course names that have a time conflict with.
         '''
@@ -396,7 +406,7 @@ class Database:
         self.close(conn)
         return result
 
-    def get_list_possible_courses_to_enroll(self, student_id: str ) -> list[str]:
+    def get_list_possible_courses_to_enroll(self, student_id: str) -> list[str]:
         '''
         Returns an list of all possible courses that the student can take keeping in mind classroom capacity and prerequisites.
         '''
@@ -444,13 +454,13 @@ class Database:
         self.close(conn)
         return result
 
-
-    def get_schedule(self, sid: str) -> list[dict]:
-        args = (sid)
+    def get_schedule(self, sid: int, semester: str, year: str) -> list[dict]:
+        args = (sid)  # add semester and year
+        # Add where T.semester=%s and T.year=%s
         query = """
             SELECT *
             FROM Takes T
-            WHERE T.sid = %s
+            WHERE T.sid=%s
         """ % args
         conn = self.connect()
         cursor = conn.execute(query)
@@ -458,36 +468,34 @@ class Database:
         self.close(conn)
         return result
 
-    def clear_schedule(self):
+    def clear_schedule(self, semester: str, year: str):
         '''
         reomve all the data from takes.
         '''
-
-        query = """DELETE FROM Takes;"""
+        args = (semester, year)
+        query = """DELETE FROM Takes WHERE semester=\'%s\' AND year=%s;""" % args
         conn = self.connect()
         cursor = conn.execute(query)
         self.close(conn)
-
 
     def add_schedule_from_file(self):
         '''
         adds data from a csv file.
         '''
 
-        #clear takes
+        # clear takes
         df = pd.read_csv('Takes.csv')
-        df = df.drop('letter_grade',axis=1)
+        df = df.drop('letter_grade', axis=1)
         cols = ", ".join([str(i) for i in df.columns.tolist()])
 
         conn = self.connect()
 
-        for i,row in df.iterrows():
-            query = "INSERT INTO Takes (" +cols + ") VALUES (%s, \'%s\', \'%s\', %s)"% tuple(row)
+        for i, row in df.iterrows():
+            query = "INSERT INTO Takes (" + cols + \
+                ") VALUES (%s, \'%s\', \'%s\', %s)" % tuple(row)
             cursor = conn.execute(query)
 
         self.close(conn)
-
-
 
     def connect(self):
         '''
