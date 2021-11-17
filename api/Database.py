@@ -474,8 +474,18 @@ class Database:
         '''
         args = (semester, year)
         query = """DELETE FROM Takes WHERE semester=\'%s\' AND year=%s;""" % args
+        query2 = """DELETE FROM taught_in WHERE semester=\'%s\' AND year=%s;""" % args
+        query3 = """DELETE FROM teach WHERE semester=\'%s\' AND year=%s;""" % args
+        query4 = """DELETE FROM assigned_to WHERE semester=\'%s\' AND year=%s;""" % args
+        query1 = """DELETE FROM Academic_Semester WHERE semester=\'%s\' AND year=%s;""" % args
+
         conn = self.connect()
         cursor = conn.execute(query)
+        if semester != 'fall' and year != 2021:
+            cursor = conn.execute(query4)
+            cursor = conn.execute(query3)
+            cursor = conn.execute(query2)
+            cursor = conn.execute(query1)
         self.close(conn)
 
     def add_schedule_from_file(self):
