@@ -119,7 +119,25 @@ const Dashboard = () => {
       year: semester.year, 
       sid: student
     }).then((response) => {
+
       setSchedule(response.data)
+
+      axios.get(`http://localhost:5000/api/v1/semesters`)
+      .then((r) => {
+        setSemesters(r.data)
+        setSemester(r.data[r.data.length - 1])
+      })
+      .catch(error => console.log(error))
+
+      
+      axios.get('http://localhost:5000/api/v1/students')
+      .then((r) => {
+        setStudents(r.data)
+        setStudent(r.data[0]['student_id'])
+      })
+
+
+
     }).catch(error => console.log(error))
   }
 
@@ -127,7 +145,16 @@ const Dashboard = () => {
     axios.post('http://localhost:5000/api/v1/add_semester')
     .then((response) => {
       setSemesters(response.data)
-      console.log(response.data)
+      setSemester(response.data[response.data.length - 1])
+
+      axios.get('http://localhost:5000/api/v1/students')
+      .then((r) => {
+        setStudents(r.data)
+        setStudent(r.data[0]['student_id'])
+      })
+      
+
+
     }).catch(error => console.log(error)) 
 
   }
@@ -154,7 +181,7 @@ const Dashboard = () => {
             </Select>
           </FormControl>
           <Button fullWidth variant="contained" onClick={scheduleSemester}>Schedule Students</Button>
-          <Button fullWidth variant="contained" color="error" onClick={deleteSchedule}>Clear Schedule</Button>
+          <Button fullWidth variant="contained" color="error" onClick={deleteSchedule}>Delete Semester</Button>
         </Stack>
       </Box>
 
