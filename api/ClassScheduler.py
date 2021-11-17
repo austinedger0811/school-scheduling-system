@@ -24,7 +24,8 @@ class ClassScheduler:
         '''
         year = current_year + 1 if current_semester == "fall" else current_year
         semester = "Spring" if current_semester == "fall" else "fall"
-
+        self.update_studnet_info_after_semester_ends(
+            current_semester, current_year)
         # - add to academic_semester
         self.db.insert_values(['semester', 'year', 'start_date', 'end_date'], [
                               semester, year, '1/18/2022', '5/13/2022'], 'Academic_Semester')
@@ -51,8 +52,7 @@ class ClassScheduler:
                                   i['cid'], semester, year, i['classroom'], i['day_of_week'], str(i['start_time']), str(i['end_time'])], 'assigned_to')
         # how can we better represent the previous semester
 
-        self.update_studnet_info_after_semester_ends(
-            current_semester, current_year)
+        
 
     def get_list_of_fullfilled_requirements(self, student_requirements):
         '''
@@ -183,10 +183,11 @@ class ClassScheduler:
     def update_studnet_info_after_semester_ends(self, semester, year):
         # how to get grades and fill each course, uploaded sheet (sid,cid,grade)?  #random assigement
         all_sids = self.update_studnet_grade_in_courses(semester, year)
-        for sid in all_sids:
+        for sid in set(all_sids):
             self.db.update_num_credits(sid)
             self.calculate_gpa(sid)
-        # self.db.update_student_grade(student_id) # after a year
+            if semester == 'Spring' :
+                self.db.update_student_grade_add(sid) # after a year
         # GPA? create a method?
 
     def update_studnet_grade_in_courses(self, semester: str, year: int):
@@ -289,3 +290,16 @@ class ClassScheduler:
         '''
         self.db.clear_schedule(semester, year)
         
+        list_sids = [r['student_id'] for r in self.db.get_table('student_id','Student')]
+        for sid in set(list_sids):
+            self.db.update_num_credits(sid)
+            if semester == 'Spring' and year == 2022:
+                self.db.update_student_gpa(sid, 0)
+                self.db.update_student_grade_reset(sid)
+                
+            else:
+                self.calculate_gpa(sid)
+                self.db.update_student_grade_clear(sid)
+
+
+            

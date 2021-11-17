@@ -170,14 +170,13 @@ class Database:
             																	FROM Takes T1
 																	            WHERE T1.grade='F' or T1.grade is NULL)
         """ % student_id
-
+        
         conn = self.connect()
         cursor = conn.execute(query)
         credits = [row._asdict()['count'] for row in cursor][0]
         updatequery = " UPDATE Student SET num_completed_credits = %s WHERE student_id = %s" % (
             credits, student_id)
         cursor = conn.execute(updatequery)
-
         self.close(conn)
 
     # need to be tested after adding new semester, tested before update works
@@ -198,7 +197,7 @@ class Database:
         return num_courses
 
     # need to be tested after adding new semester , tested before update works
-    def update_student_grade(self, student_id: str):
+    def update_student_grade_add(self, student_id: str):
         '''
         Update the student grade by increasing it by one
         '''
@@ -208,11 +207,37 @@ class Database:
         conn = self.connect()
         cursor = conn.execute(query1)
         grade = [row._asdict()['grade'] for row in cursor][0]
-        updatequery = " UPDATE Student SET grade = \'%s\' WHERE sid = %s" % (
+        updatequery = " UPDATE Student SET grade = \'%s\' WHERE student_id = %s" % (
             grade+1, student_id)
         cursor = conn.execute(updatequery)
-
         self.close(conn)
+        
+    def update_student_grade_clear(self, student_id: str):
+        '''
+        Update the student grade by increasing it by one
+        '''
+        query1 = """SELECT S.grade
+           FROM  Student S
+           WHERE S.student_id = %s """ % student_id
+        conn = self.connect()
+        cursor = conn.execute(query1)
+        grade = [row._asdict()['grade'] for row in cursor][0]
+        updatequery = " UPDATE Student SET grade = \'%s\' WHERE student_id = %s" % (
+            grade-1, student_id)
+        cursor = conn.execute(updatequery)
+        self.close(conn)
+        
+    def update_student_grade_reset(self, student_id: str):
+        '''
+        Update the student grade by increasing it by one
+        '''
+        conn = self.connect()
+        updatequery = " UPDATE Student SET grade = \'%s\' WHERE student_id = %s" % (
+            9, student_id)
+        cursor = conn.execute(updatequery)
+        self.close(conn)
+
+
 
     def get_student_ids_without_full_schedule(self, semester: str, year: int) -> list[str]:
         '''
@@ -263,7 +288,7 @@ class Database:
 
         args = (semester, year, student_id)
         query = """
-        SELECT  DISTINCT S.student_id, S.first_name, S.last_name, C.name AS Course_Name, C.course_id, A.classroom, A.start_time, A.end_time, T1.first_name AS Teacher_First_Name, T1.last_name AS Teacher_Last_Name, T1.office_number
+        SELECT  DISTINCT  C.name AS Course_Name, C.course_id AS Course_ID, A.classroom AS Classroom, A.start_time AS Start_Time, A.end_time As End_Time, T1.first_name AS Teacher_First_Name, T1.last_name AS Teacher_Last_Name, T1.office_number AS Teacher_Office_Number, T.grade AS Letter_grade
         FROM Student S, Takes T, Course C, Assigned_to A, Teacher T1, Teach T2
         WHERE S.student_id = T. sid and T.cid = C.course_id and A.cid = C.course_id and T.semester = \'%s\' and T.year = %s and S.student_id = %s and T2.tid= T1.teacher_id and C.course_id = T2.cid and T2.semester =T.semester and T2.year =T.year
         ORDER BY A.start_time""" % args
@@ -283,7 +308,7 @@ class Database:
         Returns all studnet ids for students that are not in 5 classes.
         '''
         query = """
-        SELECT  S.student_id, S.first_name As student_first_name , S.last_name As student_last_name, H.relation, E.first_name As contact_first_name, E.last_name As contact_last_name, E.phone_number
+        SELECT H.relation, E.first_name As contact_first_name, E.last_name As contact_last_name, E.phone_number
         FROM Student S, has H, Emergency_Contact E
         WHERE S.student_id = %s and E.ssn = H.ecid and H.sid = %s
         """ % (student_id, student_id)
@@ -481,7 +506,7 @@ class Database:
 
         conn = self.connect()
         cursor = conn.execute(query)
-        if semester != 'fall' and year != 2021:
+        if semester != 'fall' or year != 2021:
             cursor = conn.execute(query4)
             cursor = conn.execute(query3)
             cursor = conn.execute(query2)
