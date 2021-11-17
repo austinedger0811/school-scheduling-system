@@ -10,7 +10,7 @@ const App = () => {
   return (
     <React.Fragment>
       <Navbar />
-      <Container maxWidth="md">
+      <Container maxWidth="xl">
         <Dashboard />
       </Container>
     </React.Fragment>

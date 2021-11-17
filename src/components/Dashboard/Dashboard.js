@@ -12,6 +12,7 @@ import MenuItem from '@mui/material/MenuItem'
 import InputLabel from '@mui/material/InputLabel'
 import FormControl from '@mui/material/FormControl'
 import Typography from '@mui/material/Typography'
+import Grid from '@mui/material/Grid'
 
 const createColumns = (data) => {
   var res = []
@@ -54,6 +55,7 @@ const Dashboard = () => {
   const [studentIndex, setStudentIndex] = useState(0)
   const [semesters, setSemesters] = useState([])
   const [semester, setSemester] = useState({})
+  const [contacts, setContacts] = useState([])
 
   useEffect(() => {
     axios.get('http://localhost:5000/api/v1/students')
@@ -85,9 +87,16 @@ const Dashboard = () => {
     .catch(error => console.log(error))
   }, [])
 
+  useEffect(() => {
+    axios.get(`http://localhost:5000/api/v1/contacts/${student}`)
+    .then((response) => {
+      setContacts(response.data)
+    })
+    .catch(error => console.log(error))
+  }, [student])
+
   const handleChange = (event, child) => {
     setSemester(semesters[child.props.id]);
-    console.log(semester)
   };
 
   const semesterToString = (data) => {
@@ -125,7 +134,7 @@ const Dashboard = () => {
 
   return (
     <>
-      <Box mb={4}>
+      <Box mb={6}>
         <Stack spacing={4} direction="row">
           <Box>
             <Fab color="primary" aria-label="add" onClick={addSemester}>
@@ -148,32 +157,59 @@ const Dashboard = () => {
           <Button fullWidth variant="contained" color="error" onClick={deleteSchedule}>Clear Schedule</Button>
         </Stack>
       </Box>
-      <Box mb={4}>
-        <Typography mb={2} variant='h5'>
-         Student Schedule - {students[studentIndex]['last_name']},  {students[studentIndex]['first_name']}
-        </Typography>
-        <div style={{ height: 320, width: "100%"}}>
-          <DataGrid
-            rows={createRows(schedule)}
-            columns={createColumns(schedule)}
-            hideFooter
-          />
-        </div>
+
+      <Box sx={{ flexGrow: 1}}>
+        <Grid container spacing={6}>
+          <Grid item xs={6}>
+            <Stack spacing={2} direction="column">
+
+              <Box mb={4}>
+                <Typography mb={2} variant='h5'>
+                  Schedule - {students[studentIndex]['last_name']},  {students[studentIndex]['first_name']}
+                </Typography>
+                <div style={{ height: 360, width: "100%"}}>
+                  <DataGrid
+                    rows={createRows(schedule)}
+                    columns={createColumns(schedule)}
+                    hideFooter
+                  />
+                </div>
+              </Box>
+
+              <Box mb={4}>
+                <Typography mb={2} variant='h5'>
+                  Emergency Contacts - {students[studentIndex]['last_name']},  {students[studentIndex]['first_name']}
+                </Typography>
+                <div style={{ height: 360, width: "100%"}}>
+                  <DataGrid
+                    rows={createRows(contacts)}
+                    columns={createColumns(contacts)}
+                    hideFooter
+                  />
+                </div>
+              </Box>
+            </Stack>
+          </Grid>
+  
+          <Grid item xs={6}>
+            <Box mb={4}>
+              <Typography mb={2} variant='h5'>Students</Typography>
+                <div style={{ height: 818, width: "100%"}}>
+                  <DataGrid
+                    hideFooter
+                    rows={createRows(students)}
+                    columns={createColumns(students)}
+                    onSelectionModelChange={(index) => {
+                      setStudentIndex(index)
+                      setStudent(students[index]['student_id'])
+                      setContacts(student)
+                    }}
+                  />
+                </div>
+            </Box> 
+          </Grid>
+        </Grid>
       </Box>
-     <Box mb={4}>
-      <Typography mb={2} variant='h5'>Students</Typography>
-        <div style={{ height: 600, width: "100%"}}>
-          <DataGrid
-            rows={createRows(students)}
-            columns={createColumns(students)}
-            onSelectionModelChange={(index) => {
-              setStudentIndex(index)
-              setStudent(students[index]['student_id'])
-            }}
-            
-          />
-        </div>
-      </Box> 
     </>
   )
 }

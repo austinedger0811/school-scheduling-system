@@ -29,6 +29,11 @@ def get_schedule():
     return jsonify(scheduler.get_student_schedule(sid, semester, year))
 
 
+@app.route('/api/v1/contacts/<sid>', methods=['GET', 'POST'])
+def get_contacts(sid):
+    return jsonify(scheduler.get_student_contacts(sid))
+
+
 @app.route('/api/v1/clear_schedule', methods=['POST'])
 def clear_schedule():
     data = request.json

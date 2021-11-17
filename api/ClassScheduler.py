@@ -265,6 +265,9 @@ class ClassScheduler:
         '''
         return self.db.get_student_schdule(sid, semester, year)
 
+    def get_student_contacts(self, sid: str) -> list[dict]:
+        return self.db.get_student_emergency_contact(sid)
+
     def get_semesters(self) -> list[dict]:
         '''
         Returns all semesters.
