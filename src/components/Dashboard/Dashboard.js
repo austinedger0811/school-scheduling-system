@@ -14,6 +14,8 @@ import FormControl from '@mui/material/FormControl'
 import Typography from '@mui/material/Typography'
 import Grid from '@mui/material/Grid'
 
+const BASE_URL = "http://35.237.87.29:8111/api/v1"
+
 const createColumns = (data) => {
   var res = []
   var headers = getHeaders(data, 0)
@@ -58,7 +60,7 @@ const Dashboard = () => {
   const [contacts, setContacts] = useState([])
 
   useEffect(() => {
-    axios.get('http://localhost:5000/api/v1/students')
+    axios.get(`${BASE_URL}/students`)
     .then((response) => {
       setStudents(response.data)
       setStudent(response.data[0]['student_id'])
@@ -67,7 +69,7 @@ const Dashboard = () => {
   }, [])
 
   useEffect(() => {
-    axios.post(`http://localhost:5000/api/v1/schedule/`, {
+    axios.post(`${BASE_URL}/schedule/`, {
       semester: semester.semester,
       year: semester.year,
       sid: student
@@ -79,7 +81,7 @@ const Dashboard = () => {
   }, [student, semester])
 
   useEffect(() => {
-    axios.get(`http://localhost:5000/api/v1/semesters`)
+    axios.get(`${BASE_URL}/semesters`)
     .then((response) => {
       setSemesters(response.data)
       setSemester(response.data[0])
@@ -88,7 +90,7 @@ const Dashboard = () => {
   }, [])
 
   useEffect(() => {
-    axios.get(`http://localhost:5000/api/v1/contacts/${student}`)
+    axios.get(`${BASE_URL}/contacts/${student}`)
     .then((response) => {
       setContacts(response.data)
     })
@@ -104,7 +106,7 @@ const Dashboard = () => {
   }
 
   const scheduleSemester = () => {
-    axios.post('http://localhost:5000/api/v1/schedule_semester', {
+    axios.post(`${BASE_URL}/schedule_semester`, {
       semester: semester.semester,
       year: semester.year,
       student: student
@@ -114,7 +116,7 @@ const Dashboard = () => {
   }
 
   const deleteSchedule = () => {
-    axios.post('http://localhost:5000/api/v1/clear_schedule', {
+    axios.post(`${BASE_URL}/clear_schedule`, {
       semester: semester.semester,
       year: semester.year, 
       sid: student
@@ -122,7 +124,7 @@ const Dashboard = () => {
 
       setSchedule(response.data)
 
-      axios.get(`http://localhost:5000/api/v1/semesters`)
+      axios.get(`${BASE_URL}/semesters`)
       .then((r) => {
         setSemesters(r.data)
         setSemester(r.data[r.data.length - 1])
@@ -130,7 +132,7 @@ const Dashboard = () => {
       .catch(error => console.log(error))
 
       
-      axios.get('http://localhost:5000/api/v1/students')
+      axios.get(`${BASE_URL}/students`)
       .then((r) => {
         setStudents(r.data)
         setStudent(r.data[0]['student_id'])
@@ -142,12 +144,12 @@ const Dashboard = () => {
   }
 
   const addSemester = () => {
-    axios.post('http://localhost:5000/api/v1/add_semester')
+    axios.post(`${BASE_URL}/add_semester`)
     .then((response) => {
       setSemesters(response.data)
       setSemester(response.data[response.data.length - 1])
 
-      axios.get('http://localhost:5000/api/v1/students')
+      axios.get(`${BASE_URL}/students`)
       .then((r) => {
         setStudents(r.data)
         setStudent(r.data[0]['student_id'])
