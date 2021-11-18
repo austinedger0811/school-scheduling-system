@@ -14,7 +14,7 @@ import FormControl from '@mui/material/FormControl'
 import Typography from '@mui/material/Typography'
 import Grid from '@mui/material/Grid'
 
-const BASE_URL = "http://35.237.87.29:8111/api/v1"
+const BASE_URL = "https://35.237.87.29:8111/api/v1"
 
 const createColumns = (data) => {
   var res = []
